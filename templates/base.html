@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Default Title{% endblock %}</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- Additional styles can be added here -->
+    <style>
+            #sidebar {
+            transition: all 0.3s;
+        }
+        #sidebar.active {
+            margin-left: -250px; /* Adjust this value based on the width of your sidebar */
+        }
+        {% block my_style %}{% endblock %}
+    </style>
+</head>
+<body>
+    <!-- Navbar code here -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <button id="sidebarToggle" class="btn btn-outline-secondary mr-3">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <a class="navbar-brand" href="#">AI模型在线训练平台</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item active">
+                    <a class="nav-link" href="#">返回主页</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">个人中心</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+        <div class="container-fluid">
+    <!-- Sidebar code here -->
+        <div class="row">
+        <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+            <div class="position-sticky">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#">
+                            训练看板
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">
+                            已提交数据集
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">
+                            用户管理
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+    <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-md-4 main-content d-flex justify-content-center align-items-center">
+        {% block content %}
+        <!-- Default content can be placed here -->
+        {% endblock %}
+    </main>
+        </div>
+        </div>
+    <!-- Bootstrap JS and Popper.js (optional) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <!-- Additional scripts can be added here -->
+    <script>
+        $(document).ready(function() {
+            $('#sidebarToggle').on('click', function() {
+                $('#sidebar').toggleClass('active');
+            });
+        });
+    </script>
+</body>
+</html>
