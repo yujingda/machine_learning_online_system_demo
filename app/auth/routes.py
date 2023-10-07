@@ -6,11 +6,27 @@ from app.auth import auth_bp
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form['username']
-        email = request.form['email']
-        password = request.form['password']
-        user = User(username=username, email=email)
-        user.set_password(password)
+        username = request.form.get ('username')
+        email = request.form.get ('email')
+        password = request.form.get ('password')
+        user_identity = request.form.get ('user_identity')
+        invitation_code = request.form.get ('invitation_code')
+
+        existing_user = User.query.filter_by (username=username).first ()
+        if existing_user:
+            flash ('用户名已被使用!', 'danger')
+            return redirect (url_for ('auth.register'))
+        # Check if the user is registering as an administrator
+        if user_identity == 'administrator':
+            if invitation_code != '11111111aaa':
+                flash ('请输入有效的邀请码!', 'danger')
+                return redirect (url_for (
+                    'auth.register'))  # Assuming you have a route named 'register_page' for the registration form
+
+        # hashed_password = bcrypt.generate_password_hash (password).decode ('utf-8')
+        # Save the user data to the database (pseudo-code)
+        user = User(username=username, email=email, password='0', identity=user_identity)
+        user.set_password (password)
         db.session.add(user)
         db.session.commit()
         return redirect(url_for('auth.login'))  # redirect to login page after successful registration
