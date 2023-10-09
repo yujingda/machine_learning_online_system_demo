@@ -14,7 +14,9 @@
             {% endif %}
         {% endwith %}
 
-        <form action="{{ url_for('login') }}" method="post" class="w-50 mx-auto">
+        <form action="{{ url_for('auth.login') }}" method="post" class="w-50 mx-auto">
+            {{ form.csrf_token }} <!-- CSRF token for security -->
+
             <div class="form-group">
                 <label for="username">Username:</label>
                 <input type="text" id="username" name="username" class="form-control" required>
@@ -24,10 +26,11 @@
                 <input type="password" id="password" name="password" class="form-control" required>
             </div>
             <div class="form-group">
-                <a href="/auth/register" class="btn btn-secondary">Register</a>
+                <a href="{{ url_for('auth.register') }}" class="btn btn-secondary">Register</a>
                 <button type="submit" class="btn btn-primary ml-2">Login</button>
             </div>
         </form>
     </div>
 </body>
 </html>
+

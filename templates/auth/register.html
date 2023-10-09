@@ -3,50 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register</title>
+    <title>用户注册</title>
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 </head>
 <body>
     <div class="container mt-5">
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">用户注册</div>
-                    <div class="card-body">
-                        <form method="post">
-                            <div class="form-group">
-                                <label for="username">用户名:</label>
-                                <input type="text" class="form-control" id="username" name="username" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="email">电子邮件:</label>
-                                <input type="email" class="form-control" id="email" name="email" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="password">密码:</label>
-                                <input type="password" class="form-control" id="password" name="password" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="user_identity">用户身份:</label>
-                                <select class="form-control" id="user_identity" name="user_identity" onchange="toggleInvitationCode()">
-                                    <option value="ordinary_user">普通用户</option>
-                                    <option value="administrator">管理员</option>
-                                </select>
-                            </div>
-                            <div class="form-group" id="invitation_code_group" style="display: none;">
-                                <label for="invitation_code">邀请码:</label>
-                                <input type="text" class="form-control" id="invitation_code" name="invitation_code">
-                            </div>
-                            <button type="submit" class="btn btn-primary">注册</button>
-                            <a href="/auth/login" class="btn btn-secondary">已有帐号？点击登录</a>
-                        </form>
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">用户注册</div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                    <div class="alert alert-danger">
+                        <ul class="mb-0">
+                            {% for category, message in messages %}
+                            <li>{{ message }}</li>
+                            {% endfor %}
+                        </ul>
                     </div>
+                    {% endif %}
+                    {% endwith %}
+                    <form method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="form-group">
+                            <label for="username">用户名:</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">电子邮件:</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="password">密码:</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="confirm_password">确认密码:</label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="is_admin">用户身份:</label>
+                            <select class="form-control" id="is_admin" name="is_admin" onchange="toggleInvitationCode()">
+                                <option value="0">普通用户</option>
+                                <option value="1">管理员</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="invitation_code_group" style="display: none;">
+                            <label for="invitation_code">邀请码:</label>
+                            <input type="text" class="form-control" id="invitation_code" name="invite_code">
+                        </div>
+                        <button type="submit" class="btn btn-primary">注册</button>
+                        <a href="/login" class="btn btn-secondary">已有帐号？点击登录</a>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
+</div>
+        <script>
+        function toggleInvitationCode() {
+            var userType = document.getElementById('is_admin').value;
+            var inviteGroup = document.getElementById('invitation_code_group');
 
+            if(userType == "1") { // Admin
+                inviteGroup.style.display = "block";
+            } else {
+                inviteGroup.style.display = "none";
+            }
+        }
+    </script>
     <!-- Bootstrap JS and Popper.js (optional) -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>

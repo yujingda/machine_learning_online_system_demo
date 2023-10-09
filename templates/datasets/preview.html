@@ -1,0 +1,19 @@
+<!-- templates/datasets/preview.html -->
+
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>File Preview</h1>
+    <pre>{{ stats.preview_lines }}</pre>
+    <h2>Statistics</h2>
+    <ul>
+        <li>Total Rows: {{ stats.total_rows }}</li>
+        <li>Rows with Null Values: {{ stats.rows_with_null }}</li>
+        <li>Null Values Per Column: {{ stats.nulls_per_column }}</li>
+        <li>Number of Feature Columns: {{ stats.num_feature_columns }}</li>
+        <li>Unique Values Per Column: {{ stats.unique_values_per_column }}</li>
+        <li>Rows After Deduplication: {{ stats.rows_after_deduplication }}</li>
+        <li>Total Categories: {{ stats.total_categories }}</li>
+        <li>Rows Per Category: {{ stats.rows_per_category }}</li>
+    </ul>
+{% endblock %}
