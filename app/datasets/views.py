@@ -4,7 +4,6 @@ import pandas as pd
 from flask import redirect, url_for, flash, render_template, jsonify, send_file
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
-# from sqlalchemy.orm import a
 
 from app import db
 from app.datasets import datasets_blueprint
@@ -32,6 +31,10 @@ def upload_dataset():
         file = form.file.data
         filename = secure_filename(file.filename)
         file_path = os.path.join('path/to/datasets', filename)
+        if os.path.exists(file_path):
+            flash('A file with this name already exists.', 'danger')
+            logger.error(f'File upload conflict by user {current_user.username}, File: {file.filename}')
+            return redirect(url_for('datasets.home'))
         file.save(file_path)
 
         dataset = models.Dataset(
@@ -52,60 +55,68 @@ def upload_dataset():
 @datasets_blueprint.route('/delete/<int:dataset_id>', methods=['POST'])
 @login_required
 def delete_dataset(dataset_id):
-    dataset = Dataset.query.get_or_404(dataset_id)
+    # dataset = Dataset.query.get_or_404(dataset_id)
+    with db.session.begin():
+        dataset = db.session.query(Dataset).with_for_update().get(dataset_id)
+        if dataset is None:
+            flash('Dataset not found.', 'danger')
+            logger.error(f'Error deleting dataset (ID: {dataset_id}) by user {current_user.username}, Error: Dataset not found')
+            return redirect(url_for('datasets.home'))
+        # Check if the current user is the uploader or an admin
+        if current_user.id != dataset.uploader_id and not current_user.is_admin:
+            flash('You do not have permission to delete this dataset.', 'danger')
+            return redirect(url_for('datasets.home'))
+        file_path = dataset.file_path
 
-    # Check if the current user is the uploader or an admin
-    if current_user.id != dataset.uploader_id and not current_user.is_admin:
-        flash('You do not have permission to delete this dataset.', 'danger')
-        return redirect(url_for('datasets.homepage'))
+        # Check if the file exists
+        if not os.path.exists(file_path):
+            return jsonify(status='error', msg='File does not exist')
 
-    file_path = dataset.file_path
-
-    # Check if the file exists
-    if not os.path.exists(file_path):
-        return jsonify(status='error', msg='File does not exist')
-
-    # Delete the file
-    try:
-        os.remove(file_path)
-        db.session.delete(dataset)
-        db.session.commit()
-        flash('Dataset deleted successfully.', 'success')
-        logger.info(f'User {current_user.username} deleted dataset {dataset.name} (ID: {dataset.id})')
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f'Error deleting dataset {dataset.name} (ID: {dataset.id}) by user {current_user.username}, Error: {str(e)}')
-    return redirect(url_for('datasets.homepage'))
+        # Delete the file
+        try:
+            os.remove(file_path)
+            db.session.delete(dataset)
+            db.session.commit()
+            flash('Dataset deleted successfully.', 'success')
+            logger.info(f'User {current_user.username} deleted dataset {dataset.name} (ID: {dataset.id})')
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f'Error deleting dataset {dataset.name} (ID: {dataset.id}) by user {current_user.username}, Error: {str(e)}')
+    return redirect(url_for('datasets.home'))
 
 
 @datasets_blueprint.route('/update/<int:dataset_id>', methods=['POST'])
 @login_required
 def update_dataset(dataset_id):
-    dataset = Dataset.query.get_or_404(dataset_id)
-
-    # Check if the current user is the uploader or an admin
-    if current_user.id != dataset.uploader_id and not current_user.is_admin:
-        return jsonify(status='error', msg='You do not have permission to update this dataset.')
-
+    # dataset = Dataset.query.get_or_404(dataset_id)
     form = DatasetForm()
-    if form.validate_on_submit():
-        file = form.file.data
-        filename = secure_filename(file.filename)
-        file_path = os.path.join('path/to/datasets', filename)
-        file.save(file_path)  # Overwrite the existing file
+    with db.session.begin():
+        dataset = db.session.query(Dataset).with_for_update().get(dataset_id)
+        if dataset is None:
+            flash('Dataset not found.', 'danger')
+            logger.error(f'Error updating dataset (ID: {dataset_id}) by user {current_user.username}, Error: Dataset not found')
+            return redirect(url_for('datasets.home'))
+        # Check if the current user is the uploader or an admin
+        if current_user.id != dataset.uploader_id and not current_user.is_admin:
+            return jsonify(status='error', msg='You do not have permission to update this dataset.')
+        if form.validate_on_submit():
+            file = form.file.data
+            filename = secure_filename(file.filename)
+            file_path = os.path.join('path/to/datasets', filename)
+            file.save(file_path)  # Overwrite the existing file
 
-        # Update dataset metadata in the database
-        try:
-            dataset.name = form.name.data
-            dataset.description = form.description.data
-            dataset.file_path = file_path  # Update the file path if the filename has changed
-            db.session.commit()
-            logger.info(f'User {current_user.username} updated dataset {dataset.name} (ID: {dataset.id})')
-            return jsonify(status='success', msg='Dataset updated successfully.')
-        except Exception as e:
-            db.session.rollback()
-            logger.error(
-            f'Error updating dataset {dataset.name} (ID: {dataset.id}) by user {current_user.username}, Error: {str (e)}')
+            # Update dataset metadata in the database
+            try:
+                dataset.name = form.name.data
+                dataset.description = form.description.data
+                dataset.file_path = file_path  # Update the file path if the filename has changed
+                db.session.commit()
+                logger.info(f'User {current_user.username} updated dataset {dataset.name} (ID: {dataset.id})')
+                return jsonify(status='success', msg='Dataset updated successfully.')
+            except Exception as e:
+                db.session.rollback()
+                logger.error(
+                f'Error updating dataset {dataset.name} (ID: {dataset.id}) by user {current_user.username}, Error: {str (e)}')
     return jsonify(status='error', msg='Validation failed')
 
 
@@ -117,7 +128,7 @@ def download_dataset(dataset_id):
     # Check if the current user is the uploader or an admin
     if current_user.id != dataset.uploader_id and not current_user.is_admin:
         flash('You do not have permission to download this dataset.', 'danger')
-        return redirect(url_for('datasets.homepage'))
+        return redirect(url_for('datasets.home'))
 
     file_path = dataset.file_path
 
@@ -126,7 +137,7 @@ def download_dataset(dataset_id):
         flash('File does not exist.', 'danger')
         logger.error(
             f'Error downloading dataset {dataset.name} (ID: {dataset.id}) by user {current_user.username}, Error: File does not exist.')
-        return redirect(url_for('datasets.homepage'))
+        return redirect(url_for('datasets.home'))
     logger.info(f'User {current_user.username} downloaded dataset {dataset.name} (ID: {dataset.id})')
     return send_file(file_path, as_attachment=True)
 
@@ -139,7 +150,11 @@ def dataset_info(dataset_id):
     # Check if the current user is the uploader or an admin
     if current_user.id != dataset.uploader_id and not current_user.is_admin:
         return jsonify(status='error', msg='You do not have permission to view this dataset.')
-
+    file_path = dataset.file_path
+    if not os.path.exists(file_path):
+        flash('File not found.', 'danger')
+        logger.error(f'Error viewing dataset {dataset.name} (ID: {dataset.id}) by user {current_user.username}, Error: File not found')
+        return redirect(url_for('datasets.home'))
     # Serialize dataset information to JSON
     dataset_info_send = {
         'name': dataset.name,
@@ -160,14 +175,14 @@ def dataset_preview(dataset_id):
     # Check if the current user is the uploader or an admin
     if current_user.id != dataset.uploader_id and not current_user.is_admin:
         flash('You do not have permission to view this dataset.', 'danger')
-        return redirect(url_for('datasets.homepage'))
+        return redirect(url_for('datasets.home'))
 
     file_path = dataset.file_path
 
     # Check if the file exists
     if not os.path.exists(file_path):
         flash('File does not exist.', 'danger')
-        return redirect(url_for('datasets.homepage'))
+        return redirect(url_for('datasets.home'))
 
     # Read the dataset using pandas
     df = pd.read_csv(file_path)
@@ -193,36 +208,35 @@ def dataset_preview(dataset_id):
 def merge_datasets():
     form = MergeForm()
     if form.validate_on_submit():
-        dataset_ids = form.datasets.data  # Assumes dataset IDs are submitted as a list of strings
-        merge_method = form.merge_method.data
+        with db.session.begin():
+            dataset_ids = form.datasets.data  # Assumes dataset IDs are submitted as a list of strings
+            merge_method = form.merge_method.data
+            datasets = db.session.query(Dataset).with_for_update().filter(Dataset.id.in_(dataset_ids)).all()
+            # datasets = Dataset.query.filter(Dataset.id.in_(dataset_ids)).all()
+            df_list = [pd.read_csv(dataset.file_path) for dataset in datasets]
 
-        datasets = Dataset.query.filter(Dataset.id.in_(dataset_ids)).all()
-        df_list = [pd.read_csv(dataset.file_path) for dataset in datasets]
+            if merge_method == 'horizontal':
+                merged_df = pd.concat(df_list, axis=1)
+            else:
+                # Check for equal number of columns and matching column names
+                col_counts = {len(df.columns) for df in df_list}
+                col_names = {tuple(df.columns) for df in df_list}
 
-        if merge_method == 'horizontal':
-            merged_df = pd.concat(df_list, axis=1)
-        else:
-            # Check for equal number of columns and matching column names
-            col_counts = {len(df.columns) for df in df_list}
-            col_names = {tuple(df.columns) for df in df_list}
-
-            if len(col_counts) > 1:
-                flash('Datasets have different numbers of columns. Vertical merge is not possible.', 'danger')
-                return redirect(url_for('datasets.merge_datasets'))
-            elif len(col_names) > 1:
-                flash('Datasets have mismatched column names. Confirm merge?', 'warning')
-                # Add logic to re-render form with a confirmation prompt or handle confirmation response
-                return redirect(url_for('datasets.merge_datasets'))
-
-            merged_df = pd.concat(df_list, axis=0)
-
+                if len(col_counts) > 1:
+                    flash('Datasets have different numbers of columns. Vertical merge is not possible.', 'danger')
+                    return redirect(url_for('datasets.merge_datasets'))
+                elif len(col_names) > 1:
+                    flash('Datasets have mismatched column names. Confirm merge?', 'warning')
+                    # Add logic to re-render form with a confirmation prompt or handle confirmation response
+                    return redirect(url_for('datasets.merge_datasets'))
+                merged_df = pd.concat(df_list, axis=0)
         # Save merged dataset to a new file
         merged_file_path = os.path.join('path/to/datasets', 'merged_dataset.csv')
         merged_df.to_csv(merged_file_path, index=False)
 
         # Add new merged dataset record to the database
         new_dataset = Dataset(
-            name='Merged Dataset',
+            name='Merged Dataset',# 这里会有潜在的命名冲突问题
             description='Merged dataset created from datasets: ' + ', '.join([dataset.name for dataset in datasets]),
             uploader_id=current_user.id,
             file_path=merged_file_path
@@ -231,12 +245,7 @@ def merge_datasets():
         db.session.commit()
         logger.info(f'User {current_user.username} merged datasets with IDs: {dataset_ids}, Result: {new_dataset.id}')
         flash('Datasets merged successfully.', 'success')
-        return redirect(url_for('datasets.homepage'))
+        return redirect(url_for('datasets.home'))
 
     return render_template('datasets/merge.html', form=form)
-
-
-
-
-
 

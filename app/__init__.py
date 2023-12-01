@@ -19,6 +19,9 @@ login_manager = LoginManager(app)
 from app.logger_config import setup_logging
 setup_logging()
 from app.auth import auth_bp as auth_bp
+# from app.datasets.models import *
+# with app.app_context():
+#     db.create_all()
 app.register_blueprint(auth_bp)
 from app.datasets.views import datasets_blueprint as datasets_bp
 app.register_blueprint(datasets_bp, url_prefix='/datasets')

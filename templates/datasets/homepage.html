@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>人工智能在线训练系统</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#sidebar" aria-controls="sidebar" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <a class="navbar-brand" href="#">人工智能在线训练系统</a>
+    <div class="navbar-nav ml-auto">
+        <a class="nav-link" href="/personal_center">个人中心</a>
+    </div>
+</nav>
+
+<div class="container-fluid">
+    <div class="row">
+        <nav class="col-md-2 d-none d-md-block bg-light sidebar collapse" id="sidebar">
+            <div class="sidebar-sticky">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-toggle="collapse" href="#menu1" aria-expanded="false" aria-controls="menu1">
+                            数据集看板
+                        </a>
+                        <div class="collapse" id="menu1">
+                            <ul class="nav flex-column ml-3">
+                                <li class="nav-item"><a class="nav-link" href="#">已提交的数据集</a></li>
+                            </ul>
+                        </div>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-toggle="collapse" href="#menu2" aria-expanded="false" aria-controls="menu2">
+                            模型看板
+                        </a>
+                        <div class="collapse" id="menu2">
+                            <ul class="nav flex-column ml-3">
+                                <li class="nav-item"><a class="nav-link" href="#">训练任务创建</a></li>
+                                <li class="nav-item"><a class="nav-link" href="#">已训练模型</a></li>
+                                <li class="nav-item"><a class="nav-link" href="#">训练中模型</a></li>
+                            </ul>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-4">
+            <div class="table-responsive">
+                <table class="table table-striped table-sm">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Dataset Name</th>
+                            <th>Description</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dataset in datasets %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ dataset.name }}</td>
+                            <td>{{ dataset.description }}</td>
+                            <td>
+                            <button onclick="viewDataset({{ dataset.id }})" class="btn btn-info btn-sm">获取详细信息</button>
+                            <button onclick="downloadDataset({{ dataset.id }})" class="btn btn-success btn-sm">下载</button>
+                            <button onclick="updateDataset({{ dataset.id }})" class="btn btn-warning btn-sm">更新</button>
+                            <button onclick="deleteDataset({{ dataset.id }})" class="btn btn-danger btn-sm">删除</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <script>
+        // AJAX function for uploading a dataset
+        function uploadDataset() {
+            var formData = new FormData($('#uploadForm')[0]);
+            $.ajax({
+                url: '/datasets/upload',
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function(response) {
+                    if(response.status === 'success') {
+                        alert(response.msg);
+                        location.reload();
+                    } else {
+                        alert(response.msg);
+                    }
+                }
+            });
+        }
+
+
+        function deleteDataset(dataset_id) {
+            $.ajax({
+                url: '/datasets/delete/' + dataset_id,
+                type: 'POST',
+                success: function(response) {
+                    if(response.status === 'success') {
+                        alert(response.msg);
+                        location.reload();
+                    } else {
+                        alert(response.msg);
+                    }
+                }
+            });
+        }
+
+        function updateDataset(dataset_id) {
+        var name = prompt("Enter new dataset name:");
+        var description = prompt("Enter new description:");
+
+        if(name && description) {
+            $.ajax({
+                url: '/datasets/update/' + dataset_id,
+                type: 'POST',
+                data: {
+                    name: name,
+                    description: description
+                },
+                success: function(response) {
+                    if(response.status === 'success') {
+                        alert(response.msg);
+                        location.reload();
+                    } else {
+                        alert(response.msg);
+                    }
+                }
+            });
+        } else {
+            alert('Both fields are required.');
+        }
+    }
+
+    function viewDataset(dataset_id) {
+        $.ajax({
+            url: '/datasets/info/' + dataset_id,
+            type: 'GET',
+            success: function(response) {
+                if(response.status === 'success') {
+                    var dataset_info = response.dataset_info;
+                    alert(
+                        'Name: ' + dataset_info.name + '\n' +
+                        'Description: ' + dataset_info.description + '\n' +
+                        'Uploaded by: ' + dataset_info.uploader
+                    );
+                } else {
+                    alert(response.msg);
+                }
+            }
+        });
+    }
+
+    function downloadDataset(dataset_id) {
+        window.location.href = '/datasets/download/' + dataset_id;
+    }
+    </script>
+</body>
+</html>
